@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .graph-container {
+            display: none; /* Initially hide the graph containers */
+        }
+        .graphs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px; /* Add some space between graph sections */
+        }
+        .graph {
+            width: 48%; /* Adjust width to fit both graphs */
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="text-center">Welcome to SalesInsights</h2> <!-- Centered Title -->
+
+        <!-- Buttons for Graphs -->
+        <div class="text-center mb-4">
+            <button id="btn-show-bar" class="btn btn-primary">Show Bar Graph</button>
+            <button id="btn-show-pie" class="btn btn-secondary">Show Pie Chart</button>
+            <a href="add_data" class="btn btn-success">Add New Data</a> <!-- Changed to a link -->
+        </div>
+
+        <!-- Graph Containers -->
+        <div class="graphs">
+            <div id="total-sales-graph" class="graph-container graph" style="height: 400px;"></div>
+            <div id="average-sales-graph" class="graph-container graph" style="height: 400px;"></div>
+        </div>
+        
+        <!-- Pie Charts Side by Side -->
+        <div class="graphs">
+            <div id="total-sales-pie" class="graph-container graph" style="height: 400px;"></div>
+            <div id="average-sales-pie" class="graph-container graph" style="height: 400px;"></div>
+        </div>
+
+        <!-- Search Functionality -->
+        <div class="mb-4 text-center">
+            <input type="text" id="search-input" class="form-control" placeholder="Search records...">
+            <button id="search-button" class="btn btn-info mt-2">Search</button>
+        </div>
+
+        <!-- Data Table -->
+        <table class="table table-bordered" id="data-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>City</th>
+                    <th>Order Date</th>
+                    <th>Ship Date</th>
+                    <th>Customer ID</th>
+                    <th>Region</th>
+                    <th>Sales</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td>{{ row[4] }}</td>
+                    <td>{{ row[5] }}</td>
+                    <td>{{ row[6] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Total Sales by Region
+        var totalSalesData = {{ total_sales_json | safe }};
+        Plotly.newPlot('total-sales-graph', totalSalesData.data, totalSalesData.layout);
+
+        // Pie chart for Total Sales by Region
+        var totalSalesPieData = [{
+            values: totalSalesData.data[0].y, // Assuming the first data set has the sales values
+            labels: totalSalesData.data[0].x, // Assuming the first data set has the city names
+            type: 'pie'
+        }];
+        var totalSalesPieLayout = {
+            title: 'Percentage of Total Sales by City',
+            height: 400,
+            width: 600
+        };
+        Plotly.newPlot('total-sales-pie', totalSalesPieData, totalSalesPieLayout);
+
+                // Average Sales per Transaction
+                var averageSalesData = {{ average_sales_json | safe }};
+        Plotly.newPlot('average-sales-graph', averageSalesData.data, averageSalesData.layout);
+
+        // Pie chart for Average Sales per Transaction
+        var averageSalesPieData = [{
+            values: averageSalesData.data[0].y, // Assuming the first data set has the average sales values
+            labels: averageSalesData.data[0].x, // Assuming the first data set has the city names
+            type: 'pie'
+        }];
+        var averageSalesPieLayout = {
+            title: 'Percentage of Average Sales per Transaction by City',
+            height: 400,
+            width: 600
+        };
+        Plotly.newPlot('average-sales-pie', averageSalesPieData, averageSalesPieLayout);
+
+        // Button click handlers
+        document.getElementById('btn-show-bar').onclick = function() {
+            document.getElementById('total-sales-graph').style.display = 'block';
+            document.getElementById('average-sales-graph').style.display = 'block';
+            document.getElementById('total-sales-pie').style.display = 'none';
+            document.getElementById('average-sales-pie').style.display = 'none';
+        };
+
+        document.getElementById('btn-show-pie').onclick = function() {
+            document.getElementById('total-sales-pie').style.display = 'block';
+            document.getElementById('average-sales-pie').style.display = 'block';
+            document.getElementById('total-sales-graph').style.display = 'none';
+            document.getElementById('average-sales-graph').style.display = 'none';
+        };
+
+        document.getElementById('btn-add-data').onclick = function() {
+            // Prompt user for new data
+            var orderId = prompt("Enter Order ID:");
+            var city = prompt("Enter City:");
+            var orderDate = prompt("Enter Order Date (YYYY-MM-DD):");
+            var shipDate = prompt("Enter Ship Date (YYYY-MM-DD):");
+            var customerId = prompt("Enter Customer ID:");
+            var region = prompt("Enter Region:");
+            var sales = prompt("Enter Sales Amount:");
+
+            // Add new row to the table
+            if (orderId && city && orderDate && shipDate && customerId && region && sales) {
+                var table = document.getElementById('data-table').getElementsByTagName('tbody')[0];
+                var newRow = table.insertRow();
+                newRow.innerHTML = `<td>${orderId}</td><td>${city}</td><td>${orderDate}</td><td>${shipDate}</td><td>${customerId}</td><td>${region}</td><td>${sales}</td>`;
+            } else {
+                alert("All fields are required to add new data.");
+            }
+        };
+
+         // Search functionality
+         document.getElementById('search-button').onclick = function() {
+            var input = document.getElementById('search-input').value.toLowerCase();
+            var table = document.getElementById('data-table');
+            var rows = table.getElementsByTagName('tr');
+
+            // Loop through all table rows and hide those that don't match the search query
+            for (var i = 1; i < rows.length; i++) { // Start from 1 to skip the header row
+                var cells = rows[i].getElementsByTagName('td');
+                var found = false;
+
+                // Loop through each cell in the row
+                for (var j = 0; j < cells.length; j++) {
+                    // Check if the cell's text matches the search input
+                    if (cells[j].innerText.toLowerCase().indexOf(input) > -1) {
+                        found = true; // If a match is found, set found to true
+                        break; // No need to check other cells in this row
+                    }
+                }
+                // Show or hide the row based on whether a match was found
+                rows[i].style.display = found ? '' : 'none'; // Show if found, hide if not
+            }
+        };
+    </script>
+</body>
+</html>
